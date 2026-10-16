@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Database (created when the app runs)
+*.db
+
+# Node
+node_modules/
+dist/
+
+# Secrets and editor files
+.env
+.DS_Store
+.vscode/
