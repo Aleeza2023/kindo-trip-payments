@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import App from "./App";
-import { fakeFetch, futureExpiry } from "./test/fakeFetch";
+import { fakeFetch, futureExpiry } from "./test-utils/fakeFetch";
 
 const TRIP = {
   id: "TRIP-ZOO-2026",

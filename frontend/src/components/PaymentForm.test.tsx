@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { fakeFetch, futureExpiry, sentBody } from "../test/fakeFetch";
+import { fakeFetch, futureExpiry, sentBody } from "../test-utils/fakeFetch";
 import { PaymentForm } from "./PaymentForm";
 
 const PAID = {
