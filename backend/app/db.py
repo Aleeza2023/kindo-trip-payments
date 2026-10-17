@@ -16,7 +16,7 @@ engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread"
 
 
 @event.listens_for(engine, "connect")
-def _enable_foreign_keys(dbapi_connection: SQLiteConnection, connection_record: Any) -> None:
+def enable_foreign_keys(dbapi_connection: SQLiteConnection, connection_record: Any) -> None:
     """SQLite ignores foreign keys unless this is switched on for every connection."""
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
