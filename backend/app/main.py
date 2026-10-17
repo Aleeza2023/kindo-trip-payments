@@ -3,12 +3,15 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import date
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from sqlmodel import Session, SQLModel
 
 from app.db import engine
 from app.models import Student, Trip
-from app.routers import trips
+from app.routers import payments, registrations, trips
+
 
 def seed(session: Session) -> None:
     """Add each seed row only if it isn't there yet, so restarts don't duplicate."""
@@ -43,6 +46,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 app = FastAPI(title="Kindo Trip Payments", lifespan=lifespan)
 app.include_router(trips.router)
+app.include_router(registrations.router)
+app.include_router(payments.router)
+
+
+@app.exception_handler(RequestValidationError)
+def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """FastAPI's default 422 echoes what was sent ("input"), which could be a card number or CVV.
+    Return only where the problem is and what it is."""
+    errors = [
+        {"loc": list(error["loc"]), "msg": error["msg"], "type": error["type"]}
+        for error in exc.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": errors})
 
 
 @app.get("/api/health")
