@@ -62,7 +62,7 @@ export default function App() {
               <>
                 <PageHeading
                   title="Register for trip"
-                  subtitle="Enter your child's details and your name to continue. All fields are required."
+                  subtitle="Enter your child's details and your name to continue. Fields marked * are required."
                 />
                 <div className="grid gap-6 lg:grid-cols-3">
                   <div className="lg:col-span-2">
@@ -86,7 +86,7 @@ export default function App() {
                 <PageHeading
                   icon={<LockIcon className="h-7 w-7" />}
                   title="Payment details"
-                  subtitle="Pay securely by card. Only the last 4 digits of your card are kept."
+                  subtitle="Please enter your payment details to complete the registration."
                 />
                 {step.registration.already_registered && (
                   <div className="mb-6">

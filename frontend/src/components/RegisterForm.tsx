@@ -10,7 +10,7 @@ import { Card, primaryButton, secondaryButton } from "./ui";
 
 const MESSAGES: Record<Exclude<RegisterResult["kind"], "ok">, string> = {
   student_not_found: "We couldn't find that student. Please check the student ID and your child's name.",
-  already_paid: "Your child is already registered and paid for this trip. There's nothing more to do.",
+  already_paid: "Your child is already registered and paid for this trip.",
   error: "Something went wrong. Please try again in a moment.",
 };
 
@@ -79,6 +79,7 @@ export function RegisterForm({ tripId, initial, onRegistered, onBack }: Register
             <TextField
               id="student-id"
               label="Student ID"
+              required
               placeholder="e.g. STU-1001"
               value={studentId}
               onChange={edit("studentId", setStudentId)}
@@ -87,6 +88,7 @@ export function RegisterForm({ tripId, initial, onRegistered, onBack }: Register
             <TextField
               id="student-name"
               label="Student name"
+              required
               autoComplete="off"
               value={studentName}
               onChange={edit("studentName", setStudentName)}
@@ -106,6 +108,7 @@ export function RegisterForm({ tripId, initial, onRegistered, onBack }: Register
             <TextField
               id="parent-name"
               label="Parent/guardian name"
+              required
               autoComplete="name"
               value={parentName}
               onChange={edit("parentName", setParentName)}
