@@ -49,7 +49,7 @@ Install dependencies and start the server:
 
 ```bash
 pip install -r requirements.txt
-
+uvicorn app.main:app --reload
 ```
 
 Backend: http://localhost:8000
@@ -64,7 +64,7 @@ Open a new terminal from the repository root:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -87,7 +87,7 @@ Use any 16-digit test card number, a future expiry date (MM/YY) and a 3-digit CV
 
 ## Testing
 
-Run backend tests from the `backend` directory:
+Run backend tests from the `backend` directory, with the virtual environment activated
 
 ```bash
 pytest
@@ -135,6 +135,7 @@ For a production-ready application, I would consider:
 - **Security:** Add authentication, role-based access and protection of student and parent information.
 - **Scalability:** Consider PostgreSQL, database migrations, structured logging and monitoring.
 - **Testing:** Expand integration, concurrency and end-to-end test coverage.
+- **Database:** SQLite is used to keep the application lightweight and easy to run locally. The database is created and seeded automatically when the backend starts. The local `app.db` file is excluded from version control to avoid committing generated data and transaction records.
 
 ## AI-Assisted Development
 
