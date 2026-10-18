@@ -2,12 +2,13 @@
 
 ## Tools I used
 
-- **Claude Code (in VS Code)** – my main tool. I used it to plan each step, write the code and tests, review the code, and explain things I didn't understand (UUIDs, why money is stored in cents).
-- **Claude (claude.ai)** – to get a second opinion, for example on how the cost was formatted.
+- **Claude Code (in VS Code)** – my main tool. I used it to plan each step, write the code and tests, review the code, and explain things I didn't understand (why money is stored in cents).
+- **Claude (claude.ai)** – to get a second opinion
+- **ChatGPt - Design interface screens
 
 ## How I worked with the agent
 
-- I wrote [CLAUDE.md](CLAUDE.md) first, so the agent followed my rules from the start: the layers, the payment rules (no card data stored, money in cents, no double charges), "don't commit", and "teach me as you go".
+- I wrote [CLAUDE.md](CLAUDE.md) first, so the agent followed my rules from the start: the layers, the payment rules (no card data stored, no double charges), "don't commit", and "teach me as you go".
 - For each step I asked it to show me the plan first, and it only built after I agreed.
 - After each step it had to explain why, how it works, and what could go wrong.
 - I asked it to review the whole backend, and later the whole app.
@@ -19,24 +20,39 @@
 
 The file backend/app/legacy_payment.py was copied from a PDF. The indentation and line breaks are broken. Restore it to valid Python with 4-space indentation.
 
-Rules:
+Rules: ( for writing rules i take help from claude.ai)
 - Change only whitespace and line breaks.
 - Do not change any names, strings, numbers, comments, logic, or the order of statements. Keep the code exactly as written, including any bugs.
 - Do not add type hints, docstrings, or imports. Do not run a formatter such as black, and do not change quote styles.
 - If the PDF merged a comment into the line before it (for example "integrate with# You should"), split it onto two lines.
 - When you finish, list every change you made that is not pure indentation.
 
-### 2. Database and trip endpoint
+- Before writing code, review the requirements, show me your development plan and explain how you will implement each part. Wait for my approval, then develop the application step by step. Follow the architecture and coding rules in CLAUDE.md.
 
-> Step 2: database, models and the trip endpoint. Follow CLAUDE.md. Design decision: children are identified by a student ID that the school provides, not by name. Two children can have the same name. … Show me your plan first.
 
-### 3. Reviewing the code
+Create a responsive interface suitable for laptops, tablets and mobile devices. Show me your plan first. Don't change any code yet.
 
-> Review the complete backend… comments also… and explain me each file and assumption.
+Use the image which i upload it in asset folder for the main Screen.
 
-### 4. Cleaning up the tests
 
-> Remove all extra tests which are duplicated and extra checks which are not needed… main functionality should be tested only… before removing those tests show me the list.
+Focus on the registration process, validation, payment processing, duplicate payments, API errors and loading states.
+
+Run the existing tests and report the results. If anything fails, explain why.
+
+Before adding or removing tests, show me the proposed changes. I want to keep the test suite focused and maintainable.Remove all extra tests which are duplicated and extra checks which are not needed… main functionality should be tested only… before removing those tests show me the list. No code edits without my review.
+
+I stayed with Tailwind and a few shared components, because the brief encourages Tailwind and the app only needs a handful of components.
+
+Would this architecture be easy to maintain or extend for multiple schools and trips?
+
+Are the important business rules and payment scenarios properly tested?
+
+Check whether there are duplicate tests, missing edge cases or tests that don't provide much value.
+
+Don't refactor anything unless there is a clear reason. Explain your findings first.
+### Reviewing the code
+
+> Review the complete backend… then later on Review the whole frontend. Then Review the whole app too. Diagnose inconsistencies. No code edits please. just show me list of suggestions.
 
 ## Things I checked rather than trusted
 
@@ -62,7 +78,7 @@ Rules:
 - **Removing school_id:** while checking manually, I removed `school_id` from the trip response, because the frontend doesn't need it.
 - **Registration IDs:** Claude Code asked whether to use random UUIDs or numbers, and recommended UUIDs because registration IDs appear in URLs and there's no login. I agreed: sequential numbers would let anyone guess other registrations. UUIDs are not real access control, so I listed parent login as a future improvement.
 - **The reference number:** the confirmation page showed parents a long internal ID. I asked what it was for as two IDs on the reciepts will be confusing. Every attempt gets our own ID, because declines have no processor reference and we record every attempt. A successful payment also stores the processor's TX-… reference, which is what you'd use for refunds or checking against the payment provider. So I decided parents only see the TX number, labelled "Transaction number".
-- **No UI library:** I stayed with Tailwind and a few shared components, because the brief encourages Tailwind and the app only needs a handful of components.
+
 
 ## Times the AI got something wrong
 
@@ -70,19 +86,19 @@ Rules:
 
 The agent wrote pay() to take a lock before checking that the registration was real. In a full review I asked for, the agent spotted that any made-up ID in the URL would add a lock to memory, so someone could fill memory by sending fake IDs. I had it check the registration exists first, then lock and re-read the status, and add a test that a fake ID creates no lock.
 
-Asking the agent to review its own finished code found a problem the tests didn't, because the tests only checked that the lock worked, not what it cost.
 
 ### Consistency problems the agent introduced in the frontend
 
-Before the demo I asked Claude Code to review the whole app for consistency. It found four problems in code it had written itself:
+I asked Claude Code to review the whole app for consistency. It found four problems in code it had written itself:
 
 1. **Two names for the app.** The browser tab said "Kindo Trip Payments" but the header said "Kindo School Payments".
 2. **One colour out of place.** Info messages used indigo; everything else used blue.
 3. **Info messages announced as alerts.** "Already registered, please continue" used role="alert", which makes screen readers interrupt. Only errors should do that; information should use role="status".
 4. **Two form sections built differently.** "Student information" used a visible `<legend>`, but "Parent/guardian information" used a hidden legend plus a separate visible heading, to work around the divider line. Same look, different code.
 
-None of these broke anything, and all the tests passed. I had the agent fix all four, then checked the tests and screenshots. The lesson: tests check behaviour, not consistency.
+None of these broke anything, and all the tests passed. 
 
+- Parents see the processor's TX number as the "Transaction number", never our internal ID.
 ### A package that didn't suit my setup
 
 It first installed jsdom 30, which needs a newer version of Node than mine. It noticed the warning and switched to jsdom 29, which works with my Node version.
