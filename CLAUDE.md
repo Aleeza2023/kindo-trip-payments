@@ -1,8 +1,9 @@
-# CLAUDE.md – rules for working on this project
+
+# CLAUDE.md – Rules for Working on This Project
 
 ## Repo Layout
 
-```
+```text
 backend/
   app/
     main.py               # create the app, include routers, seed the trip and students, 422 handler
@@ -15,6 +16,7 @@ backend/
       payment_service.py  # business rules: student check, duplicates, amount from trip, double-click lock
     routers/              # thin HTTP layer: trips, registrations, payments
   tests/                  # conftest.py (in-memory database), fakes.py (fake gateway), one test file per layer
+
 frontend/
   src/
     App.tsx               # current step: trip details, register, pay, done
@@ -22,14 +24,13 @@ frontend/
     validation.ts         # pure validation functions
     format.ts             # date formatting
     types.ts              # shared API types
-    components/           # pages, plus shared UI: TextField, Notice, ui.tsx, Icons
-    test-utils/           # test setup and a fake fetch; the tests sit next to the components
-
+    components/           # pages and shared UI: TextField, Notice, Card, buttons, Icons
+    test-utils/           # test setup and fake fetch; tests sit next to components
 ```
 
-## How I want you to work with me
+## How I Want You to Work with Me
 
-- Work in small steps. If a change touches more than two files, check the plan with me first.
+- Work in small steps. Show me the plan and wait for my approval before making changes.
 - After each step, tell me why you did it, how it works, and what could go wrong.
 - If you think my idea is wrong, say so.
 - If you're unsure how a library works, tell me. Don't guess.
@@ -38,50 +39,115 @@ frontend/
 
 ## Architecture
 
-```
-schemas.py ──→ payment_service.py ──→ payment_gateway.py ──→ legacy_payment.py
-(is the input  (is it allowed?)       (talk to legacy safely;  (Kindo's code,
- valid?)                               the ONLY file that       unchanged)
-                                       imports legacy)
+```text
+schemas.py
+    |
+    v
+payment_service.py
+    |
+    v
+payment_gateway.py
+    |
+    v
+legacy_payment.py
 ```
 
-I'm treating legacy_payment.py like a real external system I can't change. Only payment_gateway.py imports it, so if it were ever replaced, that's the only file that would change.
+- `schemas.py` validates the API input.
+- `payment_service.py` handles business rules and payment decisions.
+- `payment_gateway.py` communicates with the legacy processor.
+- `legacy_payment.py` contains Kindo's original payment code and must remain unchanged.
+
+I'm treating `legacy_payment.py` like a real external system I can't change. Only `payment_gateway.py` imports it, so replacing the legacy processor would require minimal changes to the rest of the application.
 
 - Keep routers thin. They call the service (or, for a simple read like the trip, the database) and map the result to an HTTP response.
-- Pass the gateway in as a FastAPI dependency, so tests can use a fake one.
-- Keep models.py (the database) and schemas.py (the API) separate, so a database field never reaches the browser by accident.
+- Pass the gateway in as a FastAPI dependency so tests can use a fake one.
+- Keep `models.py` (the database) and `schemas.py` (the API) separate so database fields are not accidentally exposed to the frontend.
 
-## Payment rules (always apply)
+## Payment Rules (Always Apply)
 
-- No card data stored. Never save, log or return the full card number or CVV. Keep the last 4 digits only.
-- Validation errors (422) must never repeat card data. Keep the error handler in main.py.
-- The price comes from the trip, not the browser. Requests don't include an amount.
-- No double payments. If the child is already paid for, return 409 and don't call the gateway.
-- Record every attempt, whether it worked or not as transaction.
+- Never save, log, or return the full card number or CVV. Keep only the last four card digits.
+- Validation errors (422) must never repeat card data. Keep the error handler in `main.py`.
+- The price comes from the trip, not the browser. Payment requests don't include an amount.
+- Prevent repeated payments for an already-paid registration. Return HTTP 409 without calling the gateway.
+- Record each payment attempt as a separate transaction, whether it succeeds or fails.
 
-## Frontend rules
 
-- Fetch calls go in api.ts, and form checks go in validation.ts.
-- Parents only see friendly messages, never raw errors or status codes.
-- Disable the Pay button and show "Processing…" while a payment runs.
-- Use the shared components (TextField, Notice, Card and the buttons) so the styling stays consistent.
-- Tailwind only. 
-- Every input has a label. 
+## Frontend Rules
 
+- Keep fetch calls in `api.ts` and form validation in `validation.ts`.
+- Parents should see friendly messages, never raw errors or HTTP status codes.
+- Disable the Pay button and show "Processing..." while a payment is running.
+- Use shared components (`TextField`, `Notice`, `Card`, and buttons) to keep styling consistent.
+- Use Tailwind CSS without adding an unnecessary UI library.
+- Every input must have a clear, accessible label.
+- Keep the application responsive for laptops, tablets, and mobile devices.
 
 ## Typing
 
-- No "any" in TypeScript.
+- Avoid using `any` in TypeScript. Use appropriate types for data, props, and API responses.
 
 ## Testing
 
-- Frontend (Vitest): test validation.ts and how the form behaves, not which Tailwind classes it uses.
-- If a test fails, find out why. Don't delete the assertion or add a wait to make it pass.
+- Backend (pytest): test registration validation, payment processing, duplicate-payment prevention, and transaction recording using an in-memory SQLite database and a fake gateway.
+- Frontend (Vitest): test `validation.ts` and form behaviour, not Tailwind CSS classes.
+- If a test fails, investigate the cause. Don't remove assertions or add arbitrary delays just to make it pass.
+- Run relevant tests after making changes and report the results.
 
 ## Commands
 
-- Backend setup: `cd backend`, `python -m venv .venv`, activate it (Windows: `.venv\Scripts\activate`, Mac/Linux: `source .venv/bin/activate`), then `pip install -r requirements.txt`
-- Backend run (venv activated): `cd backend && uvicorn app.main:app --reload`
-- Backend tests (venv activated): `cd backend && python -m pytest`
-- Frontend run: `cd frontend && npm run dev`
-- Frontend tests: `cd frontend && npm test`
+### Backend Setup
+
+```bash
+cd backend
+python -m venv .venv
+```
+
+Activate the virtual environment:
+
+Windows:
+```bash
+.venv\Scripts\activate
+```
+
+Mac/Linux:
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+### Run Backend
+
+From the `backend` directory with the virtual environment activated:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+### Backend Tests
+
+From the `backend` directory:
+
+```bash
+python -m pytest
+```
+
+### Run Frontend
+
+From the repository root:
+
+```bash
+cd frontend
+npm run dev
+```
+
+### Frontend Tests
+
+From the `frontend` directory:
+
+```bash
+npm test
+```
