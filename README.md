@@ -1,15 +1,17 @@
 # Trip Registration and Payment App
 
-A simple web application that allows parents to view trip details, register their child, and complete a payment through Kindo's legacy payment API.
+A full-stack web application developed for the Kindo Technical Challenge. It allows parents to view school trip details, register their child, make a simulated payment through Kindo's legacy payment API, and receive confirmation.
 
 ## Features
 
-The application follows four main steps:
+The application follows four steps:
 
-1. **Trip Details** – View information about the trip, including the date, location, and cost.
-2. **Child Registration** – Enter the child's details to register for the trip.
-3. **Payment** – Enter payment details and submit the payment.
-4. **Confirmation** – Display the registration and payment result.
+1. **Trip Details** – View the trip date, location, description and cost.
+2. **Child Registration** – Register a child using their student ID and parent/guardian details.
+3. **Payment** – Enter payment details and submit a payment.
+4. **Confirmation** – View the registration and payment result.
+
+The application includes form validation, payment loading states, error handling and transaction recording.
 
 ## Technologies Used
 
@@ -17,12 +19,12 @@ The application follows four main steps:
 - **Backend:** Python, FastAPI
 - **Database:** SQLite
 - **Styling:** Tailwind CSS
-- **Testing:** Pytest (backend), Vitest and React Testing Library (frontend)
+- **Testing:** pytest (backend), Vitest and React Testing Library (frontend)
 - **AI Coding Agent:** Claude Code
 
 ## Running the Application Locally
 
-You need Python 3.11+ and Node.js 22.13+ or 24+. (Tested with Python 3.12 and Node 24.)
+**Requirements:** Python 3.11+ and Node.js 22.13+ or 24+. Tested with Python 3.12 and Node.js 24.
 
 ### 1. Clone the Repository
 
@@ -31,9 +33,7 @@ git clone https://github.com/Aleeza2023/kindo-trip-payments.git
 cd kindo-trip-payments
 ```
 
-### 2. Set Up the Backend
-
-Navigate to the backend directory and create a virtual environment:
+### 2. Backend Setup
 
 ```bash
 cd backend
@@ -45,108 +45,99 @@ Activate the virtual environment:
 - **Windows:** `.venv\Scripts\activate`
 - **Mac/Linux:** `source .venv/bin/activate`
 
-Install the required dependencies:
+Install dependencies and start the server:
 
 ```bash
 pip install -r requirements.txt
-```
-
-Start the backend server:
-
-```bash
 uvicorn app.main:app --reload
 ```
 
-The backend should be available at http://localhost:8000. The API documentation is at http://localhost:8000/docs.
+Backend: http://localhost:8000
 
-The database is created automatically when the backend starts.
+API documentation: http://localhost:8000/docs
 
-### 3. Set Up the Frontend
+The SQLite database is created automatically when the backend starts.
 
-Open another terminal and navigate to the frontend directory:
+### 3. Frontend Setup
+
+Open a new terminal from the repository root:
 
 ```bash
 cd frontend
-```
-
-Install the dependencies:
-
-```bash
 npm install
-```
-
-Start the application:
-
-```bash
 npm run dev
 ```
 
 Open http://localhost:5173 in your browser.
 
-### 4. Try It Out
+## Demo Data
 
-When the backend starts, it adds one trip (Hamilton Zoo Visit, $25.00) and these students:
+The application automatically creates one trip, **Hamilton Zoo Visit ($25.00)**, and the following sample students:
 
-| Student ID | Student name | School  | Room   | What to expect |
-|------------|--------------|---------|--------|----------------|
-| STU-1001   | Mia Smith    | SCH-001 | Room 5 | Registers normally |
-| STU-1002   | Sam Lee      | SCH-001 | Room 5 | Same name as STU-1003, but a different child |
-| STU-1003   | Sam Lee      | SCH-001 | Room 8 | Same name as STU-1002, but a different child |
-| STU-2001   | Ava Brown    | SCH-002 | Room 2 | Rejected: this student is at another school |
+| Student ID | Student Name | School | Room |
+|---|---|---|---|
+| STU-1001 | Mia Smith | SCH-001 | Room 5 |
+| STU-1002 | Sam Lee | SCH-001 | Room 5 |
+| STU-1003 | Sam Lee | SCH-001 | Room 8 |
+| STU-2001 | Ava Brown | SCH-002 | Room 2 |
 
-Enter any name as the parent/guardian. The student ID isn't case-sensitive (`stu-1001` works).
+STU-2001 is rejected because the student belongs to another school. Student IDs are case-insensitive.
 
-To pay, use any 16-digit card number, a future expiry date and any 3-digit CVV, for example:
-
-- Card number: `4242 4242 4242 4242`
-- Expiry: `12/30`
-- CVV: `123`
+Use any 16-digit test card number, a future expiry date (MM/YY) and a 3-digit CVV. No real payments are processed.
 
 ## Testing
 
-Backend tests can be run from the backend directory, with the virtual environment activated:
+Run backend tests from the `backend` directory:
 
 ```bash
-cd backend
 pytest
 ```
 
-Frontend tests can be run from the frontend directory, after `npm install`:
+Run frontend tests from the `frontend` directory:
 
 ```bash
-cd frontend
 npm test
 ```
 
-The backend tests use an in-memory database and a fake payment gateway, and the frontend tests use a fake `fetch`, so neither needs the servers running.
+Backend tests use an in-memory database and a fake payment gateway. Frontend tests mock API requests, so neither test suite requires running servers.
 
-## Design Decisions
+Testing covers payment validation, transaction processing, error handling and key application behaviour.
 
-**Working with the legacy payment API**
+## Key Design Decisions
 
-- `legacy_payment.py` is kept exactly as Kindo provided it. Only `payment_gateway.py` talks to it, so if the legacy API were replaced, only that file would need to change.
-- My code checks things the legacy API doesn't: it checks that the card hasn't expired (the legacy code only checks the MM/YY format), checks that card fields are text so the legacy code can't crash on a number, and catches any error it throws.
+- **Student identification:** Students are identified by unique IDs rather than names, allowing students with identical names to register separately.
+- **Registration and transactions:** A registration is created before payment. Each payment attempt is recorded as a separate transaction, allowing failed payments to be retried.
+- **Payment amount:** The backend retrieves the amount from the trip record rather than trusting a client-provided amount.
+- **Money representation:** Amounts are stored as integer cents to avoid floating-point precision errors. Conversion to a float occurs only when calling the legacy API.
+- **Card security:** Full card numbers and CVVs are never stored. Only the last four card digits are retained.
+- **Validation:** Frontend and backend validation check required fields, card formats and expiry dates.
+- **Legacy API integration:** The original `legacy_payment.py` remains unchanged. A separate `payment_gateway.py` handles communication with the processor.
+- **Duplicate submissions:** The application includes safeguards against repeated payment submissions and does not automatically retry failed requests.
 
-**Payments**
+## Assumptions and Limitations
 
-- No double payments
-- No automatic retries
-- No card data stored (only last 4 digits are stored)
+This is a prototype developed for the technical challenge.
 
-## Assumptions
+- One trip is predefined and created automatically.
+- Sample student records simulate a school database.
+- The supplied legacy API simulates payment processing.
+- Authentication, real payment processing and email receipts are outside the current scope.
 
-- There is one trip, created automatically when the backend starts.
-- A child is identified by their student ID.
+## Future Improvements
+
+For a production-ready application, I would consider:
+
+- **School integration:** Connect to a real student management system with verified student and parent records.
+- **Trip management:** Support multiple trips, dates, year levels and registration deadlines.
+- **Registration rules:** Include eligibility checks, sibling discounts, concessions and capacity limits.
+- **Secure payments:** Integrate Stripe or Windcave using secure hosted payment collection.
+- **Payment reliability:** Implement provider-supported idempotency, reconciliation, refunds and payment history.
+- **Security:** Add authentication, role-based access and protection of student and parent information.
+- **Scalability:** Consider PostgreSQL, database migrations, structured logging and monitoring.
+- **Testing:** Expand integration, concurrency and end-to-end test coverage.
 
 ## AI-Assisted Development
 
-- [CLAUDE.md](CLAUDE.md) – Project instructions and guidelines for the Claude agent.
-- [AI_WORKINGS.md](AI_WORKINGS.md) – AI tools used, key prompts, issues encountered, and how they were resolved.
+Claude Code was used to support development and code review. AI-generated suggestions were reviewed and evaluated against the project requirements.
 
-## Limitations and Future Improvements
-
-For a real product, I would:
-
-- Use a card provider such as Stripe or Windcave, so the app never handles card numbers.
-- Add idempotency keys, so retries are always safe.
-- Add more business rules, such as more details when registering a student, payment deadlines, refunds, more than one trip, and email receipts.
+Details of the AI workflow, key prompts, corrections and development decisions are documented in [AI_WORKINGS.md](AI_WORKINGS.md).
