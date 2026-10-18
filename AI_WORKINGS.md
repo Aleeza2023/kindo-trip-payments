@@ -68,7 +68,7 @@ Don't refactor anything unless there is a clear reason. Explain your findings fi
 - **Left as-is:** it left `if random.random() < 0.1:# 10% chance of failure` exactly as in the PDF, which I agreed with: the code must match what Kindo gave.
 
 
-### Decisions where I questioned the AI
+### Decisions where I questioned the AI 
 
 - **Identifying children (name vs student ID):** Claude's first plan identified a child by name + trip, and listed a student ID only as a future improvement. I questioned it, because it wasn't accurate. I chose a seeded student list with school-provided IDs, and a student table with the ID, school ID and room number, so the two "Sam Lee" students are separate children.
 - **Checking the name as well:** later I asked whether only the student ID should matter. The ID is what identifies the child; the name is only a confirmation step. A mistyped ID can't make a parent pay for someone else's child, and nobody can collect children's names by guessing IDs. So I kept the name check.
@@ -82,10 +82,23 @@ Don't refactor anything unless there is a clear reason. Explain your findings fi
 
 ## Times the AI got something wrong
 
+
 ### A lock created before checking the registration exists
 
 The agent wrote pay() to take a lock before checking that the registration was real. In a full review I asked for, the agent spotted that any made-up ID in the URL would add a lock to memory, so someone could fill memory by sending fake IDs. I had it check the registration exists first, then lock and re-read the status, and add a test that a fake ID creates no lock.
 
+
+### Usability check in the browser: rewording messages myself
+
+I ran through the whole flow in the browser myself, as a parent would. Some of the wording the agent had written didn't feel right, so I changed it by hand:
+
+- **Payment page subtitle:** 
+- **"Already paid" message on the registration page:** 
+- **Required fields:** I wanted parents to see clearly which fields they must fill in,
+  so I asked the agent to mark Student ID, student name and parent/guardian name with
+  a red *, and to explain on the page that * means required.
+
+I also shortened the payment error messages
 
 ### Consistency problems the agent introduced in the frontend
 
