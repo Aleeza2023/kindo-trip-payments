@@ -1,123 +1,247 @@
 # AI Workings
 
 ## Tools I used
+- **Claude Code (VS Code)** – My main AI coding agent. I used it to plan development steps, write code and tests, review the implementation, and explain technical concepts I wasn't fully familiar with, such as why payment amounts should be stored in cents.
 
-- **Claude Code (in VS Code)** – my main tool. I used it to plan each step, write the code and tests, review the code, and explain things I didn't understand (why money is stored in cents).
-- **Claude (claude.ai)** – to get a second opinion
-- **ChatGPt - Design interface screens
+- **Claude (claude.ai)** – I used it for a second opinion and to refine some of my prompts and agent instructions, making them more specific and providing clearer context for Claude Code.
 
-## How I worked with the agent
+- **ChatGPT** – I used it to explore frontend design ideas, plan the user flow, and create visual designs for the application screens.
 
-- I wrote [CLAUDE.md](CLAUDE.md) first, so the agent followed my rules from the start: the layers, the payment rules (no card data stored, no double charges), "don't commit", and "teach me as you go".
-- For each step I asked it to show me the plan first, and it only built after I agreed.
-- After each step it had to explain why, how it works, and what could go wrong.
-- I asked it to review the whole backend, and later the whole app.
-- I read the changes and made the commits myself.
+## 2. How I Worked with Claude Code
 
-## Key prompts
+I created [CLAUDE.md](CLAUDE.md) before starting development to give Claude Code clear instructions about the project structure, architecture, payment rules, and how I wanted it to work with me.
 
-### 1. Restoring the legacy code from the PDF
-
-The file backend/app/legacy_payment.py was copied from a PDF. The indentation and line breaks are broken. Restore it to valid Python with 4-space indentation.
-
-Rules: ( for writing rules i take help from claude.ai)
-- Change only whitespace and line breaks.
-- Do not change any names, strings, numbers, comments, logic, or the order of statements. Keep the code exactly as written, including any bugs.
-- Do not add type hints, docstrings, or imports. Do not run a formatter such as black, and do not change quote styles.
-- If the PDF merged a comment into the line before it (for example "integrate with# You should"), split it onto two lines.
-- When you finish, list every change you made that is not pure indentation.
-
-- Before writing code, review the requirements, show me your development plan and explain how you will implement each part. Wait for my approval, then develop the application step by step. Follow the architecture and coding rules in CLAUDE.md.
+- I asked Claude Code to show me a plan before making any code changes and wait for my approval.
+- I wanted to work in small steps rather than develop the entire application at once.
+- After each step, I asked it to explain what was implemented, why it was needed, how it worked, and what could go wrong.
+- I encouraged the agent to question my decisions and suggest better approaches when appropriate.
+- I asked it to review the backend first, then the frontend, and finally the complete application to identify bugs, inconsistencies, and possible improvements.
+- I reviewed the suggested changes before approving them.
+- I instructed Claude Code not to make Git commits, as I wanted to review the changes and commit them myself.
 
 
-Create a responsive interface suitable for laptops, tablets and mobile devices. Show me your plan first. Don't change any code yet.
 
-Use the image which i upload it in asset folder for the main Screen.
+## 3. Key Prompts and Instructions
+
+These are some of the main prompts and instructions I used while developing the application with Claude Code.
+
+### 3.1 Planning and Development
+
+> Before writing code, review the requirements, show me your development plan and explain how you will implement each part. Wait for my approval, then develop the application step by step. Follow the architecture and coding rules in CLAUDE.md.
+
+### 3.2 Restoring the Legacy Payment Code
+
+The legacy payment code was copied from the challenge PDF, which caused broken indentation, line breaks and some split words.
+
+I used Claude (claude.ai) to help refine the instructions so Claude Code could restore the file without changing the original payment logic.
+
+> The file backend/app/legacy_payment.py was copied from a PDF. The indentation and line breaks are broken. Restore it to valid Python with 4-space indentation.
+>
+> Rules:
+> - Change only whitespace and line breaks.
+> - Do not change names, strings, numbers, comments, logic or the order of statements. Keep the code exactly as written, including any bugs.
+> - Do not add type hints, docstrings or imports. Do not run a formatter such as black or change quote styles.
+> - If the PDF merged a comment into the line before it, split it onto two lines.
+> - When finished, list every change that was not purely indentation.
+
+### 3.3 Frontend Design and Responsiveness
+
+> Create a responsive interface suitable for laptops, tablets and mobile devices. Show me your plan first. Don't change any code yet.
+
+> Use the image I uploaded to the assets folder for the main screen.
+
+I also used ChatGPT to explore the design and user flow for the four screens: Trip Details, Child Registration, Payment and Confirmation.
+
+### 3.4 Reviewing the Code
+
+After developing the backend, I asked Claude Code:
+
+> Review the complete backend, including comments, and explain each file and its assumptions.
+
+Later, I asked it to review the frontend and the complete application:
+
+> Review the whole frontend, and then review the complete application for inconsistencies. Don't change any code yet. Just show me a list of suggestions.
+
+I also wanted to understand whether the architecture could support future changes:
+
+> Would this architecture be easy to maintain or extend for multiple schools and trips? Don't refactor anything unless there is a clear reason. Explain your findings first.
+
+### 3.5 Reviewing and Simplifying Tests
+
+I asked Claude Code to check whether the tests covered the main functionality and important edge cases.
+
+> Focus on the registration process, validation, payment processing, duplicate payments, API errors and loading states.
+>
+> Run the existing tests and report the results. If anything fails, explain why.
+
+Later, I asked:
+
+> Are the important business rules and payment scenarios properly tested? Check whether there are duplicate tests, missing edge cases or tests that don't provide much value.
+
+When reviewing the test suite, I wanted to avoid unnecessary tests:
+
+> Remove duplicated and unnecessary tests. Keep the tests focused on the main functionality. Before removing anything, show me the list and explain why. No code edits without my review.
+
+I reviewed the suggested changes before approving them.
+
+## 4. Things I Checked Rather Than Simply Trusting AI
+
+### 4.1 Restoring the Legacy Payment Code
+
+Claude Code fixed formatting problems introduced when the legacy payment code was copied from the PDF.
+
+It removed three PDF page footers and rejoined words that had been split across lines, for example:
+
+- `floa` / `t` → `float`
+- `random.rand` / `int` → `random.randint`
+- `"Must be 1"` / `"6 digits."` → `"Must be 16 digits."`
+
+It also flagged two assumptions where text had wrapped inside strings, including `"Missing required field: {field}"` and `"Payment declined by processor. Please try again."`
+
+**How I verified it:** Claude Code ran `python -m py_compile` to check that the file compiled. I also reviewed the reported changes before accepting them.
+
+I deliberately kept the original legacy payment logic unchanged, including the 10% random failure behaviour.
+
+### 4.2 Identifying Students by ID Instead of Name
+
+Claude Code's initial plan identified a student using their name and trip. It suggested student IDs as a future improvement.
+
+I questioned this because two students can have the same name.
+
+I decided to create a sample student table with a unique student ID, school ID and room number. This allows two students named "Sam Lee" to be identified separately.
+
+**Checking the student name as well:**
+
+While manually testing the application as a parent, I questioned whether the student ID alone was sufficient.
+
+I decided to keep the student's name as an additional confirmation check. The student ID identifies the child, while the name helps catch mistakes when entering an ID.
+
+This reduces the chance of accidentally registering the wrong student, although proper parent authentication and authorisation would still be needed in a real application.
+
+### 4.3 Storing Payment Amounts in Cents
+
+Initially, I suggested storing the trip cost as a float because storing money in cents seemed confusing.
+
+Claude Code recommended using integer cents instead. I questioned this and asked for practical examples.
+
+For example, floating-point arithmetic can produce unexpected results:
+
+`10.10 + 9.89 == 19.99` can return `False`.
+
+This could create problems when comparing payment amounts.
+
+After understanding the reason, I decided to keep amounts as integer cents in the database and business logic.
+
+### 4.4 Displaying Payment Amounts to Parents
+
+Although prices are stored in cents internally, I questioned whether parents would see values such as `2500` instead of `$25.00`.
+
+We kept cents in the database to avoid floating-point precision problems, while the API returns a formatted dollar string such as `"25.00"`.
+
+The amount is converted to a float only in `payment_gateway.py`, because the legacy payment processor expects that format.
+
+### 4.5 Removing Unnecessary Data from the API Response
+
+While manually reviewing the models and API responses, I noticed that `school_id` was included in the trip response even though the frontend didn't need it.
+
+I removed it to keep the API response focused on the information required by the frontend.
+
+### 4.6 Choosing Registration IDs
+
+Claude Code asked whether I wanted sequential registration IDs or UUIDs.
+
+It recommended UUIDs because registration IDs appear in URLs and there was no login system in the prototype.
+
+I agreed that UUIDs were more appropriate because they are harder to guess than sequential numbers.
+
+However, UUIDs are not a replacement for access control, so I listed parent authentication as a future improvement.
+
+### 4.7 Choosing Which Transaction Number to Display
+
+The confirmation page initially displayed a long internal transaction ID.
+
+I questioned why parents needed to see it, especially when a successful payment also had a reference returned by the legacy processor.
+
+Each payment attempt has an internal ID because even declined attempts need to be recorded. Successful payments also receive a `TX-...` reference from the legacy processor.
+
+I decided to keep the internal ID for database records and display only the processor's reference to parents, labelled **Transaction number**.
+
+This makes the confirmation screen simpler and easier to understand.
+## 5. Mistakes and Problems Identified During AI-Assisted Development
+
+### 5.1 Creating a Lock Before Checking the Registration
+
+Claude Code initially implemented `pay()` so that it created a lock before checking whether the registration ID existed.
+
+During a full backend review that I requested, Claude Code identified a problem: requests with made-up registration IDs could create unnecessary locks in memory. Repeated requests with invalid IDs could therefore increase memory usage.
+
+I asked Claude Code to correct the order:
+
+1. Check whether the registration exists.
+2. Acquire the lock.
+3. Re-read the registration status before processing payment.
+
+I also asked it to add a test confirming that an invalid registration ID does not create a lock.
+
+**What I learned:** The existing tests checked whether the locking mechanism worked, but they didn't check whether unnecessary locks were being created. Reviewing the code beyond the existing tests helped identify this issue.
+
+### 5.2 Frontend Consistency Issues
+
+I asked Claude Code to review the entire application for consistency. It identified four issues in code it had generated:
+
+1. **Different application names:** The browser tab displayed "Kindo Trip Payments", while the page header displayed "Kindo School Payments".
+
+2. **Inconsistent colours:** Information messages used indigo, while the rest of the application used blue.
+
+3. **Incorrect accessibility roles:** An informational message such as "Already registered, please continue" used `role="alert"`, which could cause screen readers to interrupt users unnecessarily. I agreed that `role="status"` was more appropriate for informational messages.
+
+4. **Inconsistent form structure:** The Student Information section used a visible `<legend>`, while the Parent/Guardian Information section used a hidden legend and a separate visible heading. Although both sections looked similar, they were implemented differently.
+
+I reviewed these findings, approved the corrections and manually checked the code afterwards.
+
+**What I learned:** These issues did not break the main functionality, and the tests passed. However, they showed that passing automated tests does not necessarily mean the interface is consistent or accessible.
 
 
-Focus on the registration process, validation, payment processing, duplicate payments, API errors and loading states.
+## 6. Manual Usability Checks and Improvements
 
-Run the existing tests and report the results. If anything fails, explain why.
+After implementing the main functionality, I tested the complete application in the browser from a parent's perspective.
 
-Before adding or removing tests, show me the proposed changes. I want to keep the test suite focused and maintainable.Remove all extra tests which are duplicated and extra checks which are not needed… main functionality should be tested only… before removing those tests show me the list. No code edits without my review.
+I went through the four screens: Trip Details, Child Registration, Payment and Confirmation. I wanted to check whether the instructions, messages and overall flow were easy to understand.
 
-I stayed with Tailwind and a few shared components, because the brief encourages Tailwind and the app only needs a handful of components.
+During this review, I noticed some wording and usability issues that I wanted to improve.
 
-Would this architecture be easy to maintain or extend for multiple schools and trips?
+### 6.1 Manualy Improving Messages
 
-Are the important business rules and payment scenarios properly tested?
+Some of the messages generated by Claude Code felt too long or unclear.
 
-Check whether there are duplicate tests, missing edge cases or tests that don't provide much value.
-
-Don't refactor anything unless there is a clear reason. Explain your findings first.
-### Reviewing the code
-
-> Review the complete backend… then later on Review the whole frontend. Then Review the whole app too. Diagnose inconsistencies. No code edits please. just show me list of suggestions.
-
-## Things I checked rather than trusted
-
-### Restoring the legacy code
-
-- It removed 3 PDF page footers ("Kindo School Payments Challenge: Candidate Brief N") that had been pasted into the code.
-- It rejoined words that the PDF had split across lines, for example:
-  - `floa` / `t` → `float`
-  - `random.rand` / `int` → `random.randint`
-  - `"Must be 1"` / `"6 digits."` → `"Must be 16 digits."`
-- **It flagged two assumptions:** where a line wrapped inside a string (`"Missing required field: {field}"` and `"Payment declined by processor. Please try again."`), it assumed the original had a space at the break.
-- **Verified:** Claude Code ran `python -m py_compile` and the file compiles. I read through its list of changes before accepting the file.
-- **Left as-is:** it left `if random.random() < 0.1:# 10% chance of failure` exactly as in the PDF, which I agreed with: the code must match what Kindo gave.
+I manually revised:
+- The subtitle on the Payment screen to make its purpose clearer.
+- The "Already paid" message on the Registration screen to make it easier for parents to understand.
+- Payment error messages to make them shorter and more helpful.
 
 
-### Decisions where I questioned the AI 
+### 6.2 Making Required Fields Clearer
 
-- **Identifying children (name vs student ID):** Claude's first plan identified a child by name + trip, and listed a student ID only as a future improvement. I questioned it, because it wasn't accurate. I chose a seeded student list with school-provided IDs, and a student table with the ID, school ID and room number, so the two "Sam Lee" students are separate children.
-- **Checking the name as well:** later I asked whether only the student ID should matter. The ID is what identifies the child; the name is only a confirmation step. A mistyped ID can't make a parent pay for someone else's child, and nobody can collect children's names by guessing IDs. So I kept the name check.
-- **Money in cents:** I asked to store the cost as a float, because cents felt confusing. The agent pushed back, so I asked for real examples. `10.10 + 9.89 == 19.99` is `False` with floats, which would mark a fully paid child as unpaid. I decided to keep cents.
-- **Money shown to parents:** the plan stored prices in cents. I questioned whether parents would see cents. We kept cents in the database (to avoid float rounding errors), and the API also returns a ready-formatted dollar string ("25.00"), so parents only ever see dollars.
+While testing the registration form, I noticed that required fields were not clearly indicated.
 
-- **Removing school_id:** while checking manually, I removed `school_id` from the trip response, because the frontend doesn't need it.
-- **Registration IDs:** Claude Code asked whether to use random UUIDs or numbers, and recommended UUIDs because registration IDs appear in URLs and there's no login. I agreed: sequential numbers would let anyone guess other registrations. UUIDs are not real access control, so I listed parent login as a future improvement.
-- **The reference number:** the confirmation page showed parents a long internal ID. I asked what it was for as two IDs on the reciepts will be confusing. Every attempt gets our own ID, because declines have no processor reference and we record every attempt. A successful payment also stores the processor's TX-… reference, which is what you'd use for refunds or checking against the payment provider. So I decided parents only see the TX number, labelled "Transaction number".
+I asked Claude Code to add a red asterisk (*) next to:
+- Student ID
+- Student Name
+- Parent/Guardian Name
+
+I also asked it to include a short explanation that * indicates a required field.
+
+This makes it easier for parents to identify which information they must provide before continuing.
+
+### 6.3 Reviewing the Overall User Flow
+
+I manually checked the navigation between Trip Details, Registration, Payment and Confirmation.
+
+My focus was on whether the steps followed a natural order, the buttons were easy to understand, and parents received appropriate feedback when something went wrong.
+
+It flagged me that there are two "Back" buttons(one as a link and other Butoon next to Back) which i feel does not need it. 
 
 
-## Times the AI got something wrong
 
-
-### A lock created before checking the registration exists
-
-The agent wrote pay() to take a lock before checking that the registration was real. In a full review I asked for, the agent spotted that any made-up ID in the URL would add a lock to memory, so someone could fill memory by sending fake IDs. I had it check the registration exists first, then lock and re-read the status, and add a test that a fake ID creates no lock.
-
-
-### Usability check in the browser: rewording messages myself
-
-I ran through the whole flow in the browser myself, as a parent would. Some of the wording the agent had written didn't feel right, so I changed it by hand:
-
-- **Payment page subtitle:** 
-- **"Already paid" message on the registration page:** 
-- **Required fields:** I wanted parents to see clearly which fields they must fill in,
-  so I asked the agent to mark Student ID, student name and parent/guardian name with
-  a red *, and to explain on the page that * means required.
-
-I also shortened the payment error messages
-
-### Consistency problems the agent introduced in the frontend
-
-I asked Claude Code to review the whole app for consistency. It found four problems in code it had written itself:
-
-1. **Two names for the app.** The browser tab said "Kindo Trip Payments" but the header said "Kindo School Payments".
-2. **One colour out of place.** Info messages used indigo; everything else used blue.
-3. **Info messages announced as alerts.** "Already registered, please continue" used role="alert", which makes screen readers interrupt. Only errors should do that; information should use role="status".
-4. **Two form sections built differently.** "Student information" used a visible `<legend>`, but "Parent/guardian information" used a hidden legend plus a separate visible heading, to work around the divider line. Same look, different code.
-
-None of these broke anything, and all the tests passed. 
-
-- Parents see the processor's TX number as the "Transaction number", never our internal ID.
-### A package that didn't suit my setup
-
-It first installed jsdom 30, which needs a newer version of Node than mine. It noticed the warning and switched to jsdom 29, which works with my Node version.
-
-## Cleaning up the tests
-
-I asked the agent to list duplicate and non-essential tests and show me before removing any. I approved the list, and the tests reduced.
 
 
