@@ -64,7 +64,7 @@ Open a new terminal from the repository root:
 
 ```bash
 cd frontend
-npm ci
+npm install
 npm run dev
 ```
 
