@@ -4,11 +4,21 @@ from sqlmodel import Session
 
 from app.db import get_session
 from app.schemas import RegistrationCreate, RegistrationOut
-from app.services.payment_service import AlreadyPaid, StudentNotFound, TripNotFound, register_child
+from app.services.payment_service import (
+    AlreadyPaid,
+    StudentNotFound,
+    StudentProblem,
+    TripNotFound,
+    register_child,
+)
 
 router = APIRouter(prefix="/api", tags=["registrations"])
 
-STUDENT_NOT_FOUND_MESSAGE = "We couldn't find that student. Check the student ID and name."
+STUDENT_MESSAGES: dict[StudentProblem, str] = {
+    "unknown_id": "We couldn't find a student with this ID.",
+    "other_school": "This student isn't enrolled at the school running this trip.",
+    "name_mismatch": "The name doesn't match our records for this student ID.",
+}
 ALREADY_PAID_MESSAGE = "This child is already registered and paid for this trip."
 
 
@@ -23,8 +33,10 @@ def create_registration(
         result = register_child(session, trip_id, data)
     except TripNotFound:
         raise HTTPException(status_code=404, detail="Trip not found.")
-    except StudentNotFound:
-        raise HTTPException(status_code=404, detail=STUDENT_NOT_FOUND_MESSAGE)
+    except StudentNotFound as exc:
+        # The code lets the frontend show the matching message.
+        detail = {"code": exc.reason, "message": STUDENT_MESSAGES[exc.reason]}
+        raise HTTPException(status_code=404, detail=detail)
     except AlreadyPaid:
         raise HTTPException(status_code=409, detail=ALREADY_PAID_MESSAGE)
 

@@ -4,9 +4,12 @@ import type { CardInput, Payment, Registration, RegistrationInput, Trip } from "
 
 export type TripResult = { kind: "ok"; trip: Trip } | { kind: "not_found" } | { kind: "error" };
 
+// Why a student can't be registered; matches the backend's StudentProblem codes.
+export type StudentProblem = "unknown_id" | "other_school" | "name_mismatch";
+
 export type RegisterResult =
   | { kind: "ok"; registration: Registration }
-  | { kind: "student_not_found" }
+  | { kind: "student_not_found"; reason: StudentProblem }
   | { kind: "already_paid" }
   | { kind: "error" };
 
@@ -33,6 +36,20 @@ async function send(path: string, init?: RequestInit): Promise<Reply | null> {
   }
 }
 
+/**
+ * Reads the reason code from a 404 reply: {"detail": {"code": "name_mismatch", ...}}.
+ * Returns null when there's no known code, e.g. "Trip not found".
+ */
+function studentProblem(body: unknown): StudentProblem | null {
+  const detail =
+    typeof body === "object" && body !== null ? (body as { detail?: unknown }).detail : null;
+  const code =
+    typeof detail === "object" && detail !== null ? (detail as { code?: unknown }).code : null;
+  return code === "unknown_id" || code === "other_school" || code === "name_mismatch"
+    ? code
+    : null;
+}
+
 function postJson(path: string, data: object): Promise<Reply | null> {
   return send(path, {
     method: "POST",
@@ -54,7 +71,11 @@ export async function register(tripId: string, input: RegistrationInput): Promis
   if (reply?.status === 201 || reply?.status === 200) {
     return { kind: "ok", registration: reply.body as Registration };
   }
-  if (reply?.status === 404) return { kind: "student_not_found" };
+  if (reply?.status === 404) {
+    const reason = studentProblem(reply.body);
+    // A 404 without a student reason (e.g. the trip is gone) isn't the parent's mistake.
+    return reason ? { kind: "student_not_found", reason } : { kind: "error" };
+  }
   if (reply?.status === 409) return { kind: "already_paid" };
   return { kind: "error" };
 }

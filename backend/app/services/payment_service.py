@@ -1,6 +1,8 @@
 """Business rules: who can register, and when a payment is allowed."""
+import logging
 import threading
 from dataclasses import dataclass
+from typing import Literal
 
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
@@ -9,14 +11,24 @@ from app.models import Registration, Student, Transaction, Trip
 from app.payment_gateway import GatewayError, GatewayResult, PaymentGateway
 from app.schemas import PaymentRequest, RegistrationCreate
 
+# Log lines use only IDs, amounts and messages: never the card number or CVV.
+logger = logging.getLogger(__name__)
+
 
 class TripNotFound(Exception):
     """No trip with this ID."""
 
 
+StudentProblem = Literal["unknown_id", "other_school", "name_mismatch"]
+
+
 class StudentNotFound(Exception):
-    """Unknown ID, another school, or the name doesn't match. One error for all three,
-    so nobody can use the message to find out which student IDs exist."""
+    """The student can't be registered for this trip. `reason` says why, so the parent
+    gets a specific message: unknown ID, another school, or a name that doesn't match."""
+
+    def __init__(self, reason: StudentProblem) -> None:
+        super().__init__(reason)
+        self.reason = reason
 
 
 class RegistrationNotFound(Exception):
@@ -67,12 +79,12 @@ def register_child(session: Session, trip_id: str, data: RegistrationCreate) -> 
         raise TripNotFound()
 
     student = session.get(Student, data.student_id)
-    if (
-        student is None
-        or student.school_id != trip.school_id
-        or student.full_name.casefold() != data.student_name.casefold()
-    ):
-        raise StudentNotFound()
+    if student is None:
+        raise StudentNotFound("unknown_id")
+    if student.school_id != trip.school_id:
+        raise StudentNotFound("other_school")
+    if student.full_name.casefold() != data.student_name.casefold():
+        raise StudentNotFound("name_mismatch")
 
     existing = _find_registration(session, trip.id, student.id)
     if existing is not None:
@@ -113,6 +125,7 @@ def pay(
         if registration is None:
             raise RegistrationNotFound()
         if registration.status == "paid":
+            logger.warning("Refused payment for registration %s: already paid", registration.id)
             raise AlreadyPaid()  # before the gateway, so a paid child is never charged again
 
         trip = session.get(Trip, registration.trip_id)
@@ -153,6 +166,18 @@ def pay(
         if result.success:
             registration.status = "paid"  # same commit as the transaction, so they can't disagree
         session.commit()
+
+        if result.success:
+            logger.info(
+                "Payment succeeded for registration %s: %s (%d cents)",
+                registration.id,
+                result.legacy_transaction_id,
+                trip.cost_cents,
+            )
+        else:
+            logger.warning(
+                "Payment failed for registration %s: %s", registration.id, result.error_message
+            )
 
         if crashed:
             raise GatewayError("The legacy payment processor failed.")

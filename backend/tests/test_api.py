@@ -86,10 +86,11 @@ def test_register_again_after_paid_is_409(client: TestClient) -> None:
     assert response.status_code == 409
 
 
-def test_register_wrong_student_is_404(client: TestClient) -> None:
+def test_register_wrong_student_is_404_with_reason(client: TestClient) -> None:
     wrong_name = MIA | {"student_name": "Sam Lee"}
     response = client.post(f"/api/trips/{TRIP}/registrations", json=wrong_name)
     assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "name_mismatch"
 
 
 def test_register_unknown_trip_is_404(client: TestClient) -> None:

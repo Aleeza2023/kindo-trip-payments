@@ -51,14 +51,28 @@ describe("RegisterForm", () => {
     expect(screen.queryByText("Please enter the student ID.")).not.toBeInTheDocument();
   });
 
-  it("shows a friendly message when the student isn't found", async () => {
-    fakeFetch({ status: 404, body: { detail: "We couldn't find that student." } });
+  it.each([
+    ["unknown_id", "We couldn't find a student with this ID."],
+    ["other_school", "This student isn't enrolled at the school running this trip."],
+    ["name_mismatch", "The name doesn't match our records for this student ID."],
+  ])("shows the right message when the student can't be registered (%s)", async (code, message) => {
+    fakeFetch({ status: 404, body: { detail: { code, message: "from the backend" } } });
     render(<RegisterForm tripId="TRIP-ZOO-2026" onRegistered={vi.fn()} onBack={vi.fn()} />);
 
-    await fillIn("STU-9999", "Nobody", "Jane Smith");
+    await fillIn("STU-1001", "Mia Smith", "Jane Smith");
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Please check the student ID");
+    expect(screen.getByRole("alert")).toHaveTextContent(message);
     expect(screen.queryByText(/404/)).not.toBeInTheDocument();
+  });
+
+  it("shows a general message for a 404 that isn't about the student", async () => {
+    fakeFetch({ status: 404, body: { detail: "Trip not found." } });
+    render(<RegisterForm tripId="TRIP-ZOO-2026" onRegistered={vi.fn()} onBack={vi.fn()} />);
+
+    await fillIn("STU-1001", "Mia Smith", "Jane Smith");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("couldn't find a student");
   });
 
   it("tells the parent when the child is already paid for", async () => {

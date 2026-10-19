@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 
-import { register, type RegisterResult } from "../api";
+import { register, type RegisterResult, type StudentProblem } from "../api";
 import type { Registration, RegistrationInput } from "../types";
 import { cleanName, validateName, validateStudentId } from "../validation";
 import { ArrowLeftIcon, ArrowRightIcon, UserIcon, UsersIcon } from "./Icons";
@@ -8,8 +8,13 @@ import { Notice } from "./Notice";
 import { TextField } from "./TextField";
 import { Card, primaryButton, secondaryButton } from "./ui";
 
-const MESSAGES: Record<Exclude<RegisterResult["kind"], "ok">, string> = {
-  student_not_found: "We couldn't find that student. Please check the student ID and your child's name.",
+const STUDENT_MESSAGES: Record<StudentProblem, string> = {
+  unknown_id: "We couldn't find a student with this ID.",
+  other_school: "This student isn't enrolled at the school running this trip.",
+  name_mismatch: "The name doesn't match our records for this student ID.",
+};
+
+const MESSAGES: Record<Exclude<RegisterResult["kind"], "ok" | "student_not_found">, string> = {
   already_paid: "Your child is already registered and paid for this trip.",
   error: "Something went wrong. Please try again in a moment.",
 };
@@ -64,6 +69,7 @@ export function RegisterForm({ tripId, initial, onRegistered, onBack }: Register
     setSubmitting(false);
 
     if (result.kind === "ok") onRegistered(result.registration, input);
+    else if (result.kind === "student_not_found") setMessage(STUDENT_MESSAGES[result.reason]);
     else setMessage(MESSAGES[result.kind]);
   }
 
