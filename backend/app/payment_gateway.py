@@ -1,8 +1,11 @@
 """Adapter for Kindo's legacy payment API. This is the only file that imports legacy_payment."""
+import logging
 from dataclasses import dataclass
 from typing import Protocol
 
 from app.legacy_payment import LegacyPaymentProcessor
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -67,7 +70,8 @@ class LegacyPaymentGateway:
         try:
             response = self._processor.process_payment(payment_data)
         except Exception as exc:
-            # Don't put exc's text in our message: we don't control what the legacy code says.
+            # Log and report only the error type: the legacy code's text could contain card data.
+            logger.error("Legacy payment processor crashed: %s", type(exc).__name__)
             raise GatewayError("The legacy payment processor failed.") from exc
         return GatewayResult(
             success=response.success,

@@ -1,4 +1,5 @@
 """Business rules, tested with a fake gateway so no real legacy call happens."""
+import re
 import threading
 
 import pytest
@@ -56,18 +57,19 @@ def test_register_creates_pending_registration(session: Session) -> None:
 
 
 @pytest.mark.parametrize(
-    "student_id, student_name",
+    "student_id, student_name, reason",
     [
-        ("STU-9999", "Mia Smith"),  # unknown ID
-        ("STU-1001", "Sam Lee"),  # name doesn't match the ID
-        ("STU-2001", "Ava Brown"),  # real student, but at another school
+        ("STU-9999", "Mia Smith", "unknown_id"),
+        ("STU-2001", "Ava Brown", "other_school"),  # real student, but at another school
+        ("STU-1001", "Sam Lee", "name_mismatch"),  # real student, but not this name
     ],
 )
 def test_register_rejects_wrong_student(
-    session: Session, student_id: str, student_name: str
+    session: Session, student_id: str, student_name: str, reason: str
 ) -> None:
-    with pytest.raises(StudentNotFound):
+    with pytest.raises(StudentNotFound) as caught:
         register_child(session, TRIP, child(student_id, student_name))
+    assert caught.value.reason == reason
 
 
 def test_two_children_with_the_same_name_are_separate(session: Session) -> None:
@@ -113,6 +115,23 @@ def test_decline_is_recorded_and_retry_works(session: Session) -> None:
     statuses = [t.status for t in session.exec(select(Transaction)).all()]
     assert sorted(statuses) == ["failed", "success"]  # both attempts are kept
     assert status_of(session, registration.id) == "paid"
+
+
+def test_payments_are_logged_without_card_data(
+    session: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level("INFO")
+    registration = registered(session)
+    gateway = FakeGateway(DECLINED, APPROVED)
+    pay(session, gateway, registration.id, card())  # declined
+    pay(session, gateway, registration.id, card())  # retry succeeds
+
+    assert "Payment failed" in caplog.text
+    assert "Payment succeeded" in caplog.text
+    # The card number and CVV must never reach the logs. The CVV is matched as a separate
+    # number, because the random registration ID in each line could contain "987" by chance.
+    assert CARD not in caplog.text
+    assert not re.search(rf"\b{CVV}\b", caplog.text)
 
 
 def test_crash_is_recorded_then_raised(session: Session) -> None:

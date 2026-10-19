@@ -1,4 +1,5 @@
 """Entry point for the FastAPI backend."""
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import date
@@ -11,6 +12,12 @@ from sqlmodel import Session, SQLModel
 from app.db import engine
 from app.models import Student, Trip
 from app.routers import payments, registrations, trips
+
+# Show the app's log lines in the terminal, next to uvicorn's own.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 
 def seed(session: Session) -> None:
